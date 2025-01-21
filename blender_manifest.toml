@@ -1,0 +1,29 @@
+schema_version = "1.0.0"
+
+id = "cursor_plus"
+version = "1.0.2"
+name = "3D Cursor Plus"
+tagline = "Axes, undo and few other tools for your 3D Cursor"
+maintainer = "Roman Nurov | chokavr <blendertemple@gmail.com>"
+
+type = "add-on"
+
+# website = "https://extensions.blender.org/cursor-plus/"
+
+ tags = ["3D View", "Object", "Mesh"]
+
+blender_version_min = "4.2.0"
+
+# License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
+# https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
+
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+
+ copyright = [
+   "2025 Roman Nurov | chokavr",
+]
+
+[permissions]
+files = "Save/Load gizmo presets and Pie menu configuration"
