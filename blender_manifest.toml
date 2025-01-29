@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "cursor_plus"
-version = "1.0.2"
+version = "1.0.3"
 name = "3D Cursor Plus"
 tagline = "Axes, undo and few other tools for your 3D Cursor"
 maintainer = "Roman Nurov | chokavr <blendertemple@gmail.com>"
@@ -10,7 +10,7 @@ type = "add-on"
 
 # website = "https://extensions.blender.org/cursor-plus/"
 
- tags = ["3D View", "Object", "Mesh"]
+ tags = ["3D View"]
 
 blender_version_min = "4.2.0"
 

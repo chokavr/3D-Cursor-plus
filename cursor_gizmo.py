@@ -9,6 +9,21 @@ import math
 # but they were too bulky and overly complicated. Therefore, I decided to use two sets of gizmos: 
 # one for pure looks, and another, mostly invisible, as the real controlers.  
 
+modes_list = (
+    'OBJECT', 
+    'EDIT_MESH',    
+    'EDIT_CURVE',
+    'EDIT_CURVES',
+    'EDIT_SURFACE',
+    'EDIT_TEXT',
+    'EDIT_ARMATURE',
+    'EDIT_METABALL',
+    'EDIT_LATTICE',
+    'EDIT_GREASE_PENCIL',
+    'EDIT_POINT_CLOUD',
+    'POSE',
+)
+
 def add_overlay_gizmo_prop():
     if not hasattr(bpy.types.View3DShading, 'show_gizmo_cursor_plus'):
         bpy.types.View3DShading.show_gizmo_cursor_plus = bpy.props.BoolProperty(
@@ -35,7 +50,7 @@ class CURSORPLUS_GGT_3d_cursor(bpy.types.GizmoGroup):
             show_3dcursor = True
         show_gizmo = context.space_data.shading.show_gizmo_cursor_plus
         return use_gizmo and show_3dcursor and show_gizmo \
-            and context.area.type == 'VIEW_3D' and context.mode in {'OBJECT', 'EDIT_MESH'}
+            and context.area.type == 'VIEW_3D' and context.mode in modes_list
 
     def setup(self, context):
         prefs = context.preferences.addons[__package__].preferences
@@ -188,10 +203,11 @@ class CURSORPLUS_GGT_3d_cursor(bpy.types.GizmoGroup):
 def draw_gizmo_button(self, context):
     layout = self.layout
     shading = context.space_data.shading
-    col = layout.column()
-    col.label(text="3D Cursor")
-    col.prop(shading, "show_gizmo_cursor_plus", text="Axes/Gizmo")
-    col.separator()
+    col_draw = layout.column()
+    col_draw.label(text="3D Cursor")
+    col_draw.prop(shading, "show_gizmo_cursor_plus", text="Axes/Gizmo")
+    col_draw.active = context.space_data.show_gizmo
+    col_draw.separator()
 
 # Register the classes
 def register():

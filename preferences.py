@@ -17,9 +17,10 @@ pie_items = [
     ("ROTATE", "Rotate", ""),
     ("SCALE", "Scale", ""),
     ("TWEAK", "Tweak Snapping", ""),
-    ("CLEAR", "Clear Rotation", ""),
+    ("CLEAR", "Reset 3D Cursor", ""),
     ("COPY", "Copy Rotation", ""),
-    ("OVER", "Override", ""),
+    ("OVER", "Override Panel", ""),
+    ("OVER_ALT", "Override Button", ""),    
     ("PRESET", "Gizmo Preset", ""),
     ("PRESET_R", "Gizmo Preset(R)", ""),
     ("PRESET_L", "Gizmo Preset(L)", ""),
@@ -28,14 +29,24 @@ pie_items = [
 ]
 
 plus_ops = (
-    "object.cursor_plus_snap",
-    "object.cursor_plus_clear",
-    "object.cursor_plus_move",
-    "object.cursor_plus_rotate",
-    "object.cursor_plus_scale",
-    "object.cursor_plus_copy",
-    "object.cursor_gizmo_visibility"
+    "cursorplus.snap_cursor",
+    "cursorplus.clear_cursor",
+    "cursorplus.move_selected",
+    "cursorplus.rotate_selected",
+    "cursorplus.scale_selected",
+    "cursorplus.copy_rot_to_selected",
+    "cursorplus.gizmo_visibility"
 )
+
+snap_elements = [
+    ("INCREMENT", "SNAP_INCREMENT"),
+    ("GRID", "SNAP_GRID"),
+    ("VERTEX", "SNAP_VERTEX"),
+    ("EDGE", "SNAP_EDGE"),
+    ("FACE", "SNAP_FACE"),
+    ("EDGE_MIDPOINT", "SNAP_MIDPOINT"),
+    ("EDGE_PERPENDICULAR", "SNAP_PERPENDICULAR"),
+]
 
 txt = cursor_text
 
@@ -48,12 +59,16 @@ def _label_multiline(context, text, parent):
     for text_line in text_lines:
         parent.label(text=text_line)
 
-def redraw_gizmo(self, context):
+def redraw_cursor(self, context):
+    bpy.app.timers.register(redraw_area, first_interval = 0.03)
+
+def redraw_area():
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
             if area.type == 'VIEW_3D':
                 with bpy.context.temp_override(area=area):
                     bpy.context.area.tag_redraw()
+    return None 
 
 def theme_colors(self, context):
     prefs = context.preferences.addons[__package__].preferences
@@ -69,6 +84,9 @@ def theme_colors(self, context):
         prefs.axis_z_color2 = theme.axis_z
         prefs.dot_color2 = theme.gizmo_view_align
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Toggle operators   Toggle operators   Toggle operators   Toggle operators   Toggle operators
 
 class CURSORPLUS_OT_gizmo_presets(bpy.types.Operator):
     bl_idname = "cursorplus.gizmo_presets"
@@ -82,7 +100,7 @@ class CURSORPLUS_OT_gizmo_presets(bpy.types.Operator):
         return {'FINISHED'}
 
 class CURSORPLUS_OT_gizmo_visibility(bpy.types.Operator):
-    bl_idname = "object.cursor_gizmo_visibility"
+    bl_idname = "cursorplus.gizmo_visibility"
     bl_label = "3D Cursor Gizmo Visibility"
     bl_options = {'REGISTER', 'INTERNAL'}
     bl_description = "Toggle Axes/Gizmo visibility"
@@ -90,10 +108,25 @@ class CURSORPLUS_OT_gizmo_visibility(bpy.types.Operator):
     def execute(self, context):
         shading = context.space_data.shading
         shading.show_gizmo_cursor_plus = not shading.show_gizmo_cursor_plus
-        redraw_gizmo(self, context)
-        return {'FINISHED'}    
+        redraw_area()
+        return {'FINISHED'}
     
+class CURSORPLUS_OT_align_rotation(bpy.types.Operator):
+    bl_idname = "cursorplus.align_rotation"
+    bl_label = "Align Rotation to Target"
+    bl_options = {'REGISTER', 'INTERNAL'}
+    bl_description = "Align Rotation to Target"
+    
+    def execute(self, context):
+        prefs = context.preferences.addons[__package__].preferences
+        prefs.plus_snap_align = not prefs.plus_snap_align
+        if prefs.plus_snap_align:
+            self.report({'INFO'}, f"Align Rotataion to Target")
+        else:
+            self.report({'INFO'}, f"Keep Orientation")
+        return {'FINISHED'}    
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 class CursorPlusPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
@@ -107,6 +140,17 @@ class CursorPlusPreferences(bpy.types.AddonPreferences):
             ('UNDO', "Undo Info", ""),
         ],
         default = 'GIZMO'
+    )
+    
+    keymap_tabs: EnumProperty(
+        name = "Keymaps",
+        description="Keymaps Tabs",
+        items = [
+            ('GENERAL', "General", ""),
+            ('PLUS_OPS', "PLUS Ops", ""),
+            ('SNAP', "Snap Options", ""),
+        ],
+        default = 'GENERAL'
     )
     
 # Pie items   Pie items   Pie items   Pie items   Pie items   Pie items   Pie items   Pie items  
@@ -463,7 +507,7 @@ Unlink: Allow to use the Axes/Gizmo with or without the 3D Cursor.""",
 To toggle between them when outside this tab, use other options such as a shortcut, 
 a pie menu, a button in the sidebar, or the Quick Favorites""",
         default = True,
-        update = redraw_gizmo
+        update = redraw_cursor
     )
     
     
@@ -491,9 +535,8 @@ a pie menu, a button in the sidebar, or the Quick Favorites""",
                 subSpl.prop(self, 'sync_with_3d_cursor', text="", icon='LINKED' \
                             if prefs.sync_with_3d_cursor else 'UNLINKED', toggle = 1, \
                             invert_checkbox=True if prefs.sync_with_3d_cursor else False)
-                
-                
-#                colL.label(text=" ")
+
+
                 colL.label(text=" ")
                 colL.label(text=" ")
 
@@ -636,191 +679,226 @@ a pie menu, a button in the sidebar, or the Quick Favorites""",
 
         # 3D Cursor Plus Panel location
         elif self.pref_tabs == 'PLUS_KEYMAP':
-            col = box.column()
-            _label_multiline(context=context, text=txt.ops1, parent=col)
-            col.separator(type='LINE')
-            col.prop(self, 'use_parent_plus', text="Use Default panel location: Sidebar > View > 3D Cursor ")
-            if not context.preferences.addons[__package__].preferences.use_parent_plus:
-                col.prop(self, 'category_plus', text="Tab category")
-            
-            box = layout.box()
-            
-            # Pie and Preset hotkeys            
             wm = bpy.context.window_manager
             kc = wm.keyconfigs.user
             km1 = kc.keymaps.get("3D View")
             km2 = kc.keymaps.get("3D View Tool: Cursor")
-            km3 = kc.keymaps.get("Object Mode")
-            # Not enabling the pointer until the kmi was modified by user gives both ability
-            # to restore it to previous state and prohibit kmi deletion from this tab.
+                       
+            col = box.column()
+            col.prop(self, 'use_parent_plus', text="Use Default panel location: Sidebar > View > 3D Cursor ")
+            if not context.preferences.addons[__package__].preferences.use_parent_plus:
+                col.prop(self, 'category_plus', text="Tab category")
+            col.separator(type='LINE')
             
-            colK = box.column()
-            row1a = colK.row()
-            for kmi in km1.keymap_items:
-                if kmi.idname == "cursorplus.gizmo_presets":
-                    if kmi.is_user_modified:
-                        row1a.context_pointer_set("keymap", km1) 
-                    rna_keymap_ui.draw_kmi([], kc, km1, kmi, row1a, 0)
-            row1a.label(text="", icon='BLANK1')
-                        
-            colK = box.column()
-            row1b = colK.row()
-            for kmi in km1.keymap_items:
-                if kmi.name == "3D Cursor Plus Pie":
-                    if kmi.is_user_modified:
-                        row1b.context_pointer_set("keymap", km1) 
-                    rna_keymap_ui.draw_kmi([], kc, km1, kmi, row1b, 0)
-            row1b.prop(self, 'edit_pie', text="", icon='MODIFIER_DATA', emboss=False)
+            _label_multiline(context=context, text=txt.ops1, parent=col)
+            col.row().prop(self, 'keymap_tabs', expand=True)
             
-	    # PLUS-Ops shortcuts added by user
-            for kmi in km3.keymap_items:
-                if kmi.idname in plus_ops:
-                    colOps = box.column()
-                    rowOps = colOps.row()
-                    rowOps.context_pointer_set("keymap", km3)
-                    rna_keymap_ui.draw_kmi([], kc, km3, kmi, rowOps, 0)
-                    rowOps.label(text="", icon='BLANK1')
+# General addon Keymap Tab   General addon Keymap Tab   General addon Keymap Tab   General addon Keymap Tab   
+            if self.keymap_tabs == 'GENERAL':
+                box = layout.box()
+                
+                # Pie and Preset hotkeys            
+                
+                # Not enabling the context_pointer_set until the kmi was modified by user gives both ability
+                # to restore it to the previous state and to prohibit kmi deletion from addon keymap tab.
+            
+                colK = box.column()
+                row1a = colK.row()
+                for kmi in km1.keymap_items:
+                    if kmi.idname == "cursorplus.gizmo_presets":
+                        if kmi.is_user_modified:
+                            row1a.context_pointer_set("keymap", km1) 
+                        rna_keymap_ui.draw_kmi([], kc, km1, kmi, row1a, 0)
+                row1a.label(text="", icon='UV_SYNC_SELECT')
+                            
+                colK = box.column()
+                row1b = colK.row()
+                for kmi in km1.keymap_items:
+                    if kmi.name == "3D Cursor Plus Pie":
+                        if kmi.is_user_modified:
+                            row1b.context_pointer_set("keymap", km1) 
+                        rna_keymap_ui.draw_kmi([], kc, km1, kmi, row1b, 0)
+                row1b.prop(self, 'edit_pie', text="", icon='MODIFIER_DATA')
+        
+                # Pie menu customization 
+                spacer1_X = 0.55
+                spacer2_X = 0.7
+                all_X = 1.0
+                all_Y = 1.2
+                if self.edit_pie:
+
+                    # Top         
+                    colK.separator()
+                    row = colK.row()
+                    row.alignment = 'CENTER'
+                    row.scale_x = all_X
+                    row.scale_y = all_Y
+                    row.prop(self, "pie_top", text="")
+
+                    # Top-Left + Top-Right              
+                    colK.separator()
+                    row = colK.row()
+                    row.alignment = 'CENTER'
                     
-    
-            # Pie menu customization 
-            spacer1_X = 0.55
-            spacer2_X = 0.7
-            all_X = 1.0
-            all_Y = 1.2
-            if self.edit_pie:
+                    row.scale_x = all_X
+                    row.scale_y = all_Y
+                    row.prop(self, "pie_top_left", text="")
+                    spacer = row.row()
+                    spacer.scale_x = spacer1_X
+                    spacer.label(text=" ")
+                    row.prop(self, "pie_top_right", text="")
 
-                # Top         
-                colK.separator()
-                row = colK.row()
-                row.alignment = 'CENTER'
-                row.scale_x = all_X
-                row.scale_y = all_Y
-                row.prop(self, "pie_top", text="")
+                    # Left + Right            
+                    colK.separator()
+                    colK.separator()
+                    row = colK.row()
+                    row.alignment = 'CENTER'
+                    row.scale_x = all_X
+                    row.scale_y = all_Y
+                    row.prop(self, "pie_left", text="")
+                    spacer = row.row()
+                    spacer.scale_x = spacer2_X
+                    spacer.label(text=" ")
+                    row.prop(self, "pie_right", text="")
 
-                # Top-Left + Top-Right              
-                colK.separator()
-                row = colK.row()
-                row.alignment = 'CENTER'
+                    # Bottom-Left + Bottom-Right            
+                    colK.separator()
+                    colK.separator()
+                    row = colK.row()
+                    row.alignment = 'CENTER'
+                    
+                    row.scale_x = all_X
+                    row.scale_y = all_Y
+                    row.prop(self, "pie_bottom_left", text="")
+                    spacer = row.row()
+                    spacer.scale_x = spacer1_X
+                    spacer.label(text=" ")
+                    row.prop(self, "pie_bottom_right", text="")
+
+                    # Bottom  
+                    colK.separator()
+                    row = colK.row()
+                    row.alignment = 'CENTER'
+                    row.scale_x = all_X
+                    row.scale_y = all_Y
+                    row.prop(self, "pie_bottom", text="")
+                    colK.separator()
+                    
+    		# Save and Load presets and Pie menu config
+                    row = colK.row()
+                    row.operator("cursorplus.save_presets", text="Save Config", icon='FILE_TICK')
+                    row.operator("cursorplus.load_presets", text="Load Config", icon='FILE_PARENT')
+
+                # Default 3D Cursor related keymap items:    
+                layout.label(text="   3D View")
+                box = layout.box()
                 
-                row.scale_x = all_X
-                row.scale_y = all_Y
-                row.prop(self, "pie_top_left", text="")
-                spacer = row.row()
-                spacer.scale_x = spacer1_X
-                spacer.label(text=" ")
-                row.prop(self, "pie_top_right", text="")
-
-                # Left + Right            
-                colK.separator()
-                colK.separator()
-                row = colK.row()
-                row.alignment = 'CENTER'
-                row.scale_x = all_X
-                row.scale_y = all_Y
-                row.prop(self, "pie_left", text="")
-                spacer = row.row()
-                spacer.scale_x = spacer2_X
-                spacer.label(text=" ")
-                row.prop(self, "pie_right", text="")
-
-                # Bottom-Left + Bottom-Right            
-                colK.separator()
-                colK.separator()
-                row = colK.row()
-                row.alignment = 'CENTER'
+                # 'Set 3D Cursor'            
+                col2 = box.column()       
+                row2 = col2.row()
+                for kmi in km1.keymap_items:            
+                    if kmi.idname == "view3d.cursor3d":
+                        if kmi.is_user_modified:
+                            row2.context_pointer_set("keymap", km1)
+                        rna_keymap_ui.draw_kmi([], kc, km1, kmi, row2, 0)
+                row2.prop(self, 'set_suggest', text="", icon='LIGHT')
+                if self.set_suggest:
+                    _label_multiline(context=context, text=txt.header0, parent=col2)
+                    _label_multiline(context=context, text=txt.set_sug1a, parent=col2)
+                    _label_multiline(context=context, text=txt.set_sug2, parent=col2)
+                    col2.separator(type='LINE')  
                 
-                row.scale_x = all_X
-                row.scale_y = all_Y
-                row.prop(self, "pie_bottom_left", text="")
-                spacer = row.row()
-                spacer.scale_x = spacer1_X
-                spacer.label(text=" ")
-                row.prop(self, "pie_bottom_right", text="")
+                # 'Move 3D Cursor'             
+                col3 = box.column()     
+                row3 = col3.row()    
+                col3sub = row3.column()
+                for kmi in km1.keymap_items:                                    
+                    if kmi.idname == "transform.translate" and kmi.properties.cursor_transform:
+                        if kmi.is_user_modified:
+                            col3sub.context_pointer_set("keymap", km1)
+                        rna_keymap_ui.draw_kmi([], kc, km1, kmi, col3sub, 0)
+                row3.prop(self, 'move_suggest', text="", icon='LIGHT')
+                if self.move_suggest:
+                    _label_multiline(context=context, text=txt.header0, parent=col3)
+                    _label_multiline(context=context, text=txt.move_sug1, parent=col3)
+                    _label_multiline(context=context, text=txt.move_sug2, parent=col3)
+                    _label_multiline(context=context, text=txt.move_sug3, parent=col3)
+               
 
-                # Bottom  
-                colK.separator()
-                row = colK.row()
-                row.alignment = 'CENTER'
-                row.scale_x = all_X
-                row.scale_y = all_Y
-                row.prop(self, "pie_bottom", text="")
-                colK.separator()
+                layout.label(text="   3D View Tool: Cursor")
+                box = layout.box()
                 
-		# Save and Load presets and Pie menu config
-                row = colK.row()
-                row.operator("cursorplus.save_presets", text="Save Config", icon='FILE_TICK')
-                row.operator("cursorplus.load_presets", text="Load Config", icon='FILE_PARENT')
+                # 'Tool: Set 3D Cursor'               
+                col4 = box.column()
+                row4 = col4.row()       
+                for kmi in km2.keymap_items:
+                    if kmi.idname == "view3d.cursor3d":
+                        if kmi.is_user_modified:
+                                row4.context_pointer_set("keymap", km2)
+                        rna_keymap_ui.draw_kmi([], kc, km2, kmi, row4, 0)
+                row4.prop(self, 'set_suggest2', text="", icon='LIGHT')
+                if self.set_suggest2:
+                    _label_multiline(context=context, text=txt.header0, parent=col4)
+                    _label_multiline(context=context, text=txt.set_sug1b, parent=col4)
+                    _label_multiline(context=context, text=txt.set_sug2, parent=col4)
+                    col4.separator(type='LINE')
 
-            # Default 3D Cursor related keymap items:    
-            layout.label(text="   3D View")
-            box = layout.box()
+                
+                # 'Tool: Move 3D Cursor'    
+                col5 = box.column()
+                row5 = col5.row()    
+                col5sub = row5.column()       
+                for kmi in km2.keymap_items:
+                    if kmi.idname == "transform.translate" and kmi.properties.cursor_transform:
+                        if kmi.is_user_modified:
+                                col5sub.context_pointer_set("keymap", km2)
+                        rna_keymap_ui.draw_kmi([], kc, km2, kmi, col5sub, 0)
+                row5.prop(self, 'move_suggest2', text="", icon='LIGHT')
+                if self.move_suggest2:
+                    _label_multiline(context=context, text=txt.header0, parent=col5)
+                    _label_multiline(context=context, text=txt.move_sug1, parent=col5)
+                    _label_multiline(context=context, text=txt.move_sug2, parent=col5)
+                    _label_multiline(context=context, text=txt.move_sug3, parent=col5)
             
-            # 'Set 3D Cursor'            
-            col2 = box.column()       
-            row2 = col2.row()
-            for kmi in km1.keymap_items:            
-                if kmi.idname == "view3d.cursor3d":
-                    if kmi.is_user_modified:
-                        row2.context_pointer_set("keymap", km1)
-                    rna_keymap_ui.draw_kmi([], kc, km1, kmi, row2, 0)
-            row2.prop(self, 'set_suggest', text="", icon='LIGHT', emboss=False)
-            if self.set_suggest:
-                _label_multiline(context=context, text=txt.header0, parent=col2)
-                _label_multiline(context=context, text=txt.set_sug1a, parent=col2)
-                _label_multiline(context=context, text=txt.set_sug2, parent=col2)
-                col2.separator(type='LINE')  
-            
-            # 'Move 3D Cursor'             
-            col3 = box.column()     
-            row3 = col3.row()    
-            col3sub = row3.column()
-            for kmi in km1.keymap_items:                                    
-                if kmi.idname == "transform.translate" and kmi.properties.cursor_transform:
-                    if kmi.is_user_modified:
-                        col3sub.context_pointer_set("keymap", km1)
-                    rna_keymap_ui.draw_kmi([], kc, km1, kmi, col3sub, 0)
-            row3.prop(self, 'move_suggest', text="", icon='LIGHT', emboss=False)
-            if self.move_suggest:
-                _label_multiline(context=context, text=txt.header0, parent=col3)
-                _label_multiline(context=context, text=txt.move_sug1, parent=col3)
-                _label_multiline(context=context, text=txt.move_sug2, parent=col3)
-                _label_multiline(context=context, text=txt.move_sug3, parent=col3)
-           
+# PLUS Operators Keymap Tab      PLUS Operators Keymap Tab      PLUS Operators Keymap Tab     
 
-            layout.label(text="   3D View Tool: Cursor")
-            box = layout.box()
+            elif self.keymap_tabs == 'PLUS_OPS':
+                box = layout.box()
+                # PLUS-Ops shortcuts
+                for kmi in reversed(km1.keymap_items):
+                    if kmi.idname in plus_ops:
+                        colOps = box.column()
+                        rowOps = colOps.row()
+                        if kmi.is_user_modified:
+                            rowOps.context_pointer_set("keymap", km1)
+                        rna_keymap_ui.draw_kmi([], kc, km1, kmi, rowOps, 0)
+                        rowOps.label(text="", icon='BLANK1')
             
-            # 'Tool: Set 3D Cursor'               
-            col4 = box.column()
-            row4 = col4.row()       
-            for kmi in km2.keymap_items:
-                if kmi.idname == "view3d.cursor3d":
-                    if kmi.is_user_modified:
-                            row4.context_pointer_set("keymap", km2)
-                    rna_keymap_ui.draw_kmi([], kc, km2, kmi, row4, 0)
-            row4.prop(self, 'set_suggest2', text="", icon='LIGHT', emboss=False)
-            if self.set_suggest2:
-                _label_multiline(context=context, text=txt.header0, parent=col4)
-                _label_multiline(context=context, text=txt.set_sug1b, parent=col4)
-                _label_multiline(context=context, text=txt.set_sug2, parent=col4)
-                col4.separator(type='LINE')
+# Snap Options Keymap Tab       Snap Options Keymap Tab       Snap Options Keymap Tab  
 
-            
-            # 'Tool: Move 3D Cursor'    
-            col5 = box.column()
-            row5 = col5.row()    
-            col5sub = row5.column()       
-            for kmi in km2.keymap_items:
-                if kmi.idname == "transform.translate" and kmi.properties.cursor_transform:
-                    if kmi.is_user_modified:
-                            col5sub.context_pointer_set("keymap", km2)
-                    rna_keymap_ui.draw_kmi([], kc, km2, kmi, col5sub, 0)
-            row5.prop(self, 'move_suggest2', text="", icon='LIGHT', emboss=False)
-            if self.move_suggest2:
-                _label_multiline(context=context, text=txt.header0, parent=col5)
-                _label_multiline(context=context, text=txt.move_sug1, parent=col5)
-                _label_multiline(context=context, text=txt.move_sug2, parent=col5)
-                _label_multiline(context=context, text=txt.move_sug3, parent=col5)
+            else:
+                box = layout.box()
+                # Snap Options shortcuts
+                for kmi in km1.keymap_items:
+                    if kmi.idname == "cursorplus.align_rotation":
+                        colSnap = box.column()
+                        rowSnap = colSnap.row()
+                        if kmi.is_user_modified:
+                            rowSnap.context_pointer_set("keymap", km1)
+                        rna_keymap_ui.draw_kmi([], kc, km1, kmi, rowSnap, 0)
+                        rowSnap.label(text="", icon='BLANK1')
+                        
+                snap_icon_mapping = {elem[0]: elem[1] for elem in snap_elements}
+                
+                for kmi in reversed(km1.keymap_items):
+                    if kmi.idname == "cursorplus.toggle_list":
+                        colSnap = box.column()
+                        rowSnap = colSnap.row()
+                        if kmi.is_user_modified:
+                            rowSnap.context_pointer_set("keymap", km1)
+                        rna_keymap_ui.draw_kmi([], kc, km1, kmi, rowSnap, 0)
+                        icon_name = snap_icon_mapping.get(kmi.properties.element, 'BLANK1')
+                        rowSnap.label(text="", icon=icon_name)
             
             
                     
@@ -887,15 +965,29 @@ a pie menu, a button in the sidebar, or the Quick Favorites""",
             _label_multiline(context=context, text=txt.undo4, parent=colU)
             colU.separator()            
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  
 classes = (
     CursorPlusPreferences,
     CURSORPLUS_OT_gizmo_presets,
     CURSORPLUS_OT_gizmo_visibility,
+    CURSORPLUS_OT_align_rotation,
 )
  
 addon_keymap = []
 
+def keymap_reg():
+    if not hasattr(bpy.types, "CURSORPLUS_OT_toggle_list"):
+        return 0.1
+    kc = bpy.context.window_manager.keyconfigs.addon
+    km = kc.keymaps.new(name="3D View", space_type="VIEW_3D")
+    for elem in snap_elements:
+        kmi = km.keymap_items.new('cursorplus.toggle_list', 'NONE', 'PRESS')
+        kmi.properties.element = elem[0]
+        kmi.active = False
+        addon_keymap.append((km, kmi))
+    return None
+    
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -904,9 +996,20 @@ def register():
     km = kc.keymaps.new(name="3D View", space_type="VIEW_3D")
     kmi = km.keymap_items.new('cursorplus.gizmo_presets', 'D', 'PRESS', shift=True, ctrl=True)
     addon_keymap.append((km,kmi))
+    
     kmi = km.keymap_items.new('wm.call_menu_pie', 'D', 'PRESS', ctrl=True)
     kmi.properties.name = "CURSORPLUS_MT_cursor_plus_pie"
     addon_keymap.append((km,kmi))
+    kmi = km.keymap_items.new('cursorplus.align_rotation', 'NONE', 'PRESS')
+    kmi.active = False
+    addon_keymap.append((km,kmi))
+    
+    for op in plus_ops:
+        kmi = km.keymap_items.new(op, 'NONE', 'PRESS')
+        kmi.active = False
+        addon_keymap.append((km, kmi))
+    
+    bpy.app.timers.register(keymap_reg, first_interval = 0.3)
     
 def unregister():
     for cls in reversed(classes):

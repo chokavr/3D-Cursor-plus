@@ -1,9 +1,7 @@
-ops1 = "     PLUS Operators are intended to be accessed from a Pie menu and do not have their own \
-dedicated shortcuts. However, if you want to have them or to add an operator to 'Quick Favorites', \
-you can easily do so by right-clicking the desired button on the 3D Cursor Plus panel at the sidebar. \
-New shortcuts will appear here. Worth mentioning that Blender considers assigning a shortcut as a \
-change in 'Preferences'. Although 'Auto-Save Preferences' is enabled by default, if you have turned \
-it off, make sure to manually press 'Save Preferences'."
+ops1 = "     PLUS Operators are intended to be accessed from a Pie menu. However, if you want to use shortcuts, \
+fell free to edit the placeholders made for them in 'PLUS Ops' and 'Snap Options' tabs down below. Worth \
+mentioning that Blender considers editing a shortcut as a change in 'Preferences'. Although 'Auto-Save \
+Preferences' is enabled by default, if you have turned it off, make sure to manually press 'Save Preferences'."
 
 
 header0 = " Recommended tweaks:"
@@ -46,7 +44,7 @@ ONLY for the cursor. And it will have its own separate list of elements to snap,
 to fit your needs. It will complement the 'Snap 3D Cursor' PLUS operator, that has the same \
 functionality, and grant you even more control at cursor placement."
 
-move_sug3 = "   3. Snap Base. Click to enable and chose any option except 'Active'.   If 'Active' \
+move_sug3 = "   3. Snap Base. Click to enable and chose 'Closest'.   If 'Active' \
 is enabled in your global 'Snap Base' options, and you have an object selected (or while in 'Edit mode'), \
 and your cursor is not at this object's origin, attempting to move and snap the cursor somewhere \
 will result in it snapping with an offset equal to the distance between the cusor and objects' origin point. \

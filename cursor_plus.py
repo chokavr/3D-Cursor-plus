@@ -6,6 +6,20 @@ import rna_keymap_ui
 enable_ori = True
 enable_piv = True
 
+modes_list = (
+    'OBJECT', 
+    'EDIT_MESH',    
+    'EDIT_CURVE',
+    'EDIT_CURVES',
+    'EDIT_SURFACE',
+    'EDIT_TEXT',
+    'EDIT_ARMATURE',
+    'EDIT_METABALL',
+    'EDIT_LATTICE',
+    'EDIT_GREASE_PENCIL',
+    'EDIT_POINT_CLOUD',
+    'POSE',
+)
 
 class OverFlags(PropertyGroup):
     
@@ -32,14 +46,15 @@ class OverFlags(PropertyGroup):
         description = "",
         default = 'INDIVIDUAL_ORIGINS',
     )    
-
+    
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Override current Transform Orientation and Pivot Point to 'Cursor' or restore everything back.
 class CURSORPLUS_OT_override(bpy.types.Operator):
     bl_idname = "cursorplus.override"
     bl_label = ""
-    bl_options = {'REGISTER', 'INTERNAL', 'UNDO'}    
-    
+    bl_options = {'REGISTER', 'INTERNAL', 'UNDO'}
+        
     action: EnumProperty(
         items=[
             ('ORIENT', 'Override Orientation', ""),
@@ -48,8 +63,7 @@ class CURSORPLUS_OT_override(bpy.types.Operator):
             ('STOP', 'Stop Override', "")
         ]
     )
-    
-    
+        
     @classmethod
     def description(cls, context, properties):
         if properties.action == 'ORIENT':
@@ -57,30 +71,30 @@ class CURSORPLUS_OT_override(bpy.types.Operator):
         if properties.action == 'PIVOT':
             return "Override Transform Pivot Point to 'Cursor'" 
         if properties.action == 'ALL':
-            return "Override Transform Orientation and Pivot Point to 'Cursor' " 
+            return "Override Transform Orientation and Pivot Point to 'Cursor' \
+\nSHIFT: Only Transform Orientation \nALT: Only Pivot Point" 
         if properties.action == 'STOP':
-            return "Revert Overriden parameter(s) to previous state" 
+            return "Revert Overriden parameter(s) to the previous state" 
     
-    def execute(self, context):
-        global test_prop
+    def invoke(self, context, event):
         t_orientation = context.scene.transform_orientation_slots[0]
         p_point = context.tool_settings
         flags = context.scene.over
 
-        if self.action == 'ORIENT':
+        if self.action == 'ORIENT' or self.action == 'ALL' and event.shift and not event.alt:
             if not flags.ori_overridden:
                 flags.stored_orientation = t_orientation.type
                 t_orientation.type = 'CURSOR'
                 flags.ori_overridden = True
            
-        elif self.action == 'PIVOT':
+        elif self.action == 'PIVOT' or self.action == 'ALL' and event.alt and not event.shift:
             if not flags.piv_overridden:
                 flags.stored_pivot = p_point.transform_pivot_point
                 p_point.transform_pivot_point = 'CURSOR'
                 flags.piv_overridden = True  
         
         elif self.action == 'ALL':
-            if not flags.ori_overridden and not flags.piv_overridden or\
+            if not flags.ori_overridden and not flags.piv_overridden or \
             p_point.transform_pivot_point != 'CURSOR' and \
             t_orientation.type != 'CURSOR': 
                 flags.stored_orientation = t_orientation.type
@@ -105,46 +119,51 @@ class CURSORPLUS_OT_override(bpy.types.Operator):
         
         return {'FINISHED'}
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Process changes in the custom snap list
+def descipt(elem):
+    if elem == 'INCREMENT':
+        return "Toggle snap to increments"
+    if elem == 'GRID':
+        return "Toggle snap to grid" 
+    if elem == 'VERTEX':
+        return "Toggle snap to vertices" 
+    if elem == 'EDGE':
+        return "Toggle snap to edges" 
+    if elem == 'FACE':
+        return "Toggle snap to faces" 
+    if elem == 'EDGE_MIDPOINT':
+        return "Toggle snap to the middle of edges" 
+    if elem == 'EDGE_PERPENDICULAR':
+        return "Toggle snap to the nearest point of an edge"
+
 class CURSORPLUS_OT_toggle_list(bpy.types.Operator):
     bl_idname = "cursorplus.toggle_list"
-    bl_label = ""
+    bl_label = "3D Cursor Snap List"
     bl_options = {'REGISTER', 'INTERNAL'}    
     
     element: EnumProperty(
         items=[
-            ('INCREMENT', 'Inc', "Toggle snap to increments"),
-            ('GRID', 'Grid', "Toggle snap to grid"),
-            ('VERTEX', 'Vert', "Toggle snap to vertices"),
-            ('EDGE', 'Edge', "Toggle snap to edges"),
-            ('FACE', 'Face', "Toggle snap to faces"),
-            ('EDGE_MIDPOINT', 'Edge Mid', "Toggle snap to the middle of edges"),
-            ('EDGE_PERPENDICULAR', 'Edge Perp', "Toggle snap to the nearest point of an edge")
+            ('INCREMENT', 'Increment', "Toggle snap to: Increments"),
+            ('GRID', 'Grid', "Toggle snap to: Grid"),
+            ('VERTEX', 'Vertex', "Toggle snap to: Vertex"),
+            ('EDGE', 'Edge', "Toggle snap to: Edges"),
+            ('FACE', 'Face', "Toggle snap to: Faces"),
+            ('EDGE_MIDPOINT', 'Edge Center', "Toggle snap to: Edge Center"),
+            ('EDGE_PERPENDICULAR', 'Edge Perpendicular', "Toggle snap to: Edge Perpendicular")
         ]
     )
     
     @classmethod
     def description(cls, context, properties):
-        if properties.element == 'INCREMENT':
-            return "Toggle snap to increments"
-        if properties.element == 'GRID':
-            return "Toggle snap to grid" 
-        if properties.element == 'VERTEX':
-            return "Toggle snap to vertices" 
-        if properties.element == 'EDGE':
-            return "Toggle snap to edges" 
-        if properties.element == 'FACE':
-            return "Toggle snap to faces" 
-        if properties.element == 'EDGE_MIDPOINT':
-            return "Toggle snap to the middle of edges" 
-        if properties.element == 'EDGE_PERPENDICULAR':
-            return "Toggle snap to the nearest point of an edge"     
-    
+        return(descipt(properties.element))
+ 
     def execute(self, context):
         prefs = context.preferences.addons[__package__].preferences
         snap_list = set(prefs.plus_snap_list.split(','))
         if len(snap_list) == 1 and self.element in snap_list:
+            self.report({'INFO'}, f"Snap to: {prefs.plus_snap_list}")
             return {'FINISHED'}
 
         if self.element in snap_list:
@@ -152,15 +171,17 @@ class CURSORPLUS_OT_toggle_list(bpy.types.Operator):
         else:
             snap_list.add(self.element)
         prefs.plus_snap_list = ','.join(snap_list)
+        self.report({'INFO'}, f"Snap to: {prefs.plus_snap_list}")
         bpy.context.area.tag_redraw()
         return {'FINISHED'}
-    
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # CURSORPLUS related operators     CURSORPLUS related operators      CURSORPLUS related operators   
 
 # Iterate through selected objects, using 'QUATERNION' for unified rotation translation.
 class CURSORPLUS_OT_copy_rot_to_selected(bpy.types.Operator):
-    bl_idname = "object.cursor_plus_copy"
+    bl_idname = "cursorplus.copy_rot_to_selected"
     bl_label = "Copy Cursor's Rotation"
     bl_options = {'REGISTER', 'UNDO'}
     bl_description = "Copy rotation of the 3D cursor to selected object(s)"
@@ -169,7 +190,7 @@ class CURSORPLUS_OT_copy_rot_to_selected(bpy.types.Operator):
     def poll(cls, context):
          obj = context.active_object
          return obj is not None and obj.select_get() \
-            and context.area.type == 'VIEW_3D' and context.mode in {'OBJECT', 'EDIT_MESH'}
+            and context.area.type == 'VIEW_3D' and context.mode in modes_list
 
     def execute(self, context):
         cursor = bpy.context.scene.cursor
@@ -184,22 +205,37 @@ class CURSORPLUS_OT_copy_rot_to_selected(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CURSORPLUS_OT_clear_cursor_rot(bpy.types.Operator):
-    bl_idname = "object.cursor_plus_clear"
-    bl_label = "Clear Cursor's Rotation"
+class CURSORPLUS_OT_clear_cursor(bpy.types.Operator):
+    bl_idname = "cursorplus.clear_cursor"
+    bl_label = "Reset 3D Cursor"
     bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Clear the 3D cursor's rotation"
+    bl_description = "Reset 3D cursor's location and rotation\nSHIFT: Only rotation \
+\nALT: Only location\nSHIFT+ALT: Center Cursor + Frame All"
     
-    def execute(self, context):
+    def invoke(self, context, event):
         cursor = bpy.context.scene.cursor
-        cursor.rotation_euler = (0,0,0)
-        bpy.context.scene.cursor.rotation_quaternion = (1.0, 0.0, 0.0, 0.0)
-        cursor.rotation_axis_angle = (0, 0, 1, 0)
+        if event.alt and event.shift:
+            bpy.ops.view3d.view_all(center=True)
+            self.report({'INFO'}, f"Center Cursor + Frame All")
+            return {'FINISHED'} 
+        
+        if event.alt:
+            cursor.location = (0,0,0)
+            self.report({'INFO'}, f"Clear Location") 
+            return {'FINISHED'}
+        if event.shift:
+            cursor.rotation_euler = (0,0,0)
+            cursor.rotation_quaternion = (1.0, 0.0, 0.0, 0.0)
+            cursor.rotation_axis_angle = (0, 0, 1, 0)
+            self.report({'INFO'}, f"Clear Rotation")
+            return {'FINISHED'}
+        bpy.ops.view3d.snap_cursor_to_center()
+        self.report({'INFO'}, f"Center Cursor")
         return {'FINISHED'} 
 
 
-class CURSORPLUS_OT_move_with_cursor(bpy.types.Operator):
-    bl_idname = "object.cursor_plus_move"
+class CURSORPLUS_OT_move_selected(bpy.types.Operator):
+    bl_idname = "cursorplus.move_selected"
     bl_label = "Move along the Cursor"
     bl_options = {'REGISTER', 'UNDO'}
     bl_description = "Move selection along the Z axis of the 3D cursor"
@@ -208,7 +244,7 @@ class CURSORPLUS_OT_move_with_cursor(bpy.types.Operator):
     def poll(cls, context):
         obj = context.active_object
         return obj is not None and obj.select_get() \
-            and context.area.type == 'VIEW_3D' and context.mode in {'OBJECT', 'EDIT_MESH'}
+            and context.area.type == 'VIEW_3D' and context.mode in modes_list
     
     def execute(self, context):
         bpy.ops.transform.translate(
@@ -220,8 +256,8 @@ class CURSORPLUS_OT_move_with_cursor(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CURSORPLUS_OT_pivot_with_cursor(bpy.types.Operator):
-    bl_idname = "object.cursor_plus_rotate"
+class CURSORPLUS_OT_rotate_selected(bpy.types.Operator):
+    bl_idname = "cursorplus.rotate_selected"
     bl_label = "Rotate around the Cursor"
     bl_options = {'REGISTER', 'UNDO'}
     bl_description = "Pivot selection around the 3D cursor. Default axis is Z axis of the 3D Cursor"
@@ -230,7 +266,7 @@ class CURSORPLUS_OT_pivot_with_cursor(bpy.types.Operator):
     def poll(cls, context):
         obj = context.active_object
         return obj is not None and obj.select_get() \
-            and context.area.type == 'VIEW_3D' and context.mode in {'OBJECT', 'EDIT_MESH'}
+            and context.area.type == 'VIEW_3D' and context.mode in modes_list
     
     def execute(self, context):
         bpy.ops.transform.rotate(
@@ -245,8 +281,8 @@ class CURSORPLUS_OT_pivot_with_cursor(bpy.types.Operator):
         return {'FINISHED'}
 
     
-class CURSORPLUS_OT_scale_from_cursor(bpy.types.Operator):
-    bl_idname = "object.cursor_plus_scale"
+class CURSORPLUS_OT_scale_selected(bpy.types.Operator):
+    bl_idname = "cursorplus.scale_selected"
     bl_label = "Scale relative to the Cursor"
     bl_options = {'REGISTER', 'UNDO'}
     bl_description = "Scale selection using the 3D cursor as a transform point"
@@ -255,7 +291,7 @@ class CURSORPLUS_OT_scale_from_cursor(bpy.types.Operator):
     def poll(cls, context):
         obj = context.active_object
         return obj is not None and obj.select_get() \
-            and context.area.type == 'VIEW_3D' and context.mode in {'OBJECT', 'EDIT_MESH'}
+            and context.area.type == 'VIEW_3D' and context.mode in modes_list
     
     def execute(self, context):
         bpy.ops.transform.resize(
@@ -267,23 +303,41 @@ class CURSORPLUS_OT_scale_from_cursor(bpy.types.Operator):
             )
         return {'FINISHED'}
     
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 # Move the 3D Cursor with its own snap and align options enabled. Transform orientation - 'Cursor'. 
-class CURSORPLUS_OT_move_cursor(bpy.types.Operator):
-    bl_idname = "object.cursor_plus_snap"
+class CURSORPLUS_OT_snap_cursor(bpy.types.Operator):
+    bl_idname = "cursorplus.snap_cursor"
     bl_label = "Snap Cursor"
     bl_options = {'REGISTER', 'UNDO'}
     bl_description = """Move the 3D Cursor 
-temporarily using custom 'Snap' and 'Align Rotation to Target' options"""
+Using custom 'Snap' and 'Align Rotation to Target' options
+SHIFT: Invert current custom alignment option\nALT: Snap with cleared cursor rotation"""
+
+    is_aligned = True
 
     @classmethod
     def poll(cls, context):
-        return context.area.type == 'VIEW_3D' and context.mode in {'OBJECT', 'EDIT_MESH'}
+        return context.area.type == 'VIEW_3D' and context.mode in modes_list
     
-    def execute(self, context):
+    def invoke(self, context, event):
+        cursor = bpy.context.scene.cursor
         prefs = context.preferences.addons[__package__].preferences
+        snap_list = set(prefs.plus_snap_list.split(','))
+        
+        # 'SHIFT' to temporarily invert rotation alignment        
+        is_aligned = not prefs.plus_snap_align if event.shift else prefs.plus_snap_align
+            
+        rot = "'Align Rotation': ON" if is_aligned else "'Align Rotation': OFF"
+        
+        # 'ALT' to reset cursor rotation 
+        if event.alt:
+            cursor.rotation_euler = (0,0,0)
+            is_aligned = False
+            rot = "Rotation Reset"
+        
         current_transformation = bpy.data.scenes["Scene"].transform_orientation_slots[0].type
         bpy.data.scenes["Scene"].transform_orientation_slots[0].type = 'CURSOR'
-        snap_list = set(prefs.plus_snap_list.split(','))
         
         bpy.ops.transform.translate(
             'INVOKE_DEFAULT',
@@ -293,11 +347,15 @@ temporarily using custom 'Snap' and 'Align Rotation to Target' options"""
             orient_matrix_type='CURSOR',
             mirror=False, snap=True, snap_elements=snap_list,
             use_snap_project=False, snap_target='CLOSEST', use_snap_self=True,
-            use_snap_edit=True, use_snap_nonedit=True, snap_align=prefs.plus_snap_align,
+            use_snap_edit=True, use_snap_nonedit=True, snap_align=is_aligned,
             use_snap_selectable=True, cursor_transform=True, release_confirm=False
             )
-        bpy.data.scenes["Scene"].transform_orientation_slots[0].type = current_transformation    
+        bpy.data.scenes["Scene"].transform_orientation_slots[0].type = current_transformation
+        
+        self.report({'INFO'}, f"Snap to: {prefs.plus_snap_list} with {rot}")    
         return {'FINISHED'}
+    
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Draw panels   Draw panels   Draw panels   Draw panels   Draw panels   Draw panels   Draw panels
 
@@ -318,9 +376,9 @@ class CURSORPLUS_PT_cursor_ops(bpy.types.Panel):
         col = layout.column()
         row = col.row(align=True)
         box = row.box()
-        box.operator('object.cursor_plus_snap', emboss=False, text="Snap to ...", icon='ORIENTATION_CURSOR')
+        box.operator('cursorplus.snap_cursor', emboss=False, text="Snap to ...", icon='ORIENTATION_CURSOR')
         box = row.box()
-        box.operator('object.cursor_plus_clear', emboss=False, text="Clear Rotation")
+        box.operator('cursorplus.clear_cursor', emboss=False, text="Reset Cursor")
         
  
         box = col.box()    
@@ -332,18 +390,18 @@ class CURSORPLUS_PT_cursor_ops(bpy.types.Panel):
         row = col.row(align=True)
         box = row.box()
         box.scale_y = bsy2
-        box.operator('object.cursor_plus_move', emboss=False, text="Move", icon='MOD_LENGTH')
+        box.operator('cursorplus.move_selected', emboss=False, text="Move", icon='MOD_LENGTH')
         box = row.box()
         box.scale_y = bsy2
-        box.operator('object.cursor_plus_rotate', emboss=False, text="Rotate", icon='CON_ROTLIKE')
+        box.operator('cursorplus.rotate_selected', emboss=False, text="Rotate", icon='CON_ROTLIKE')
         
         row = col.row(align=True)
         box = row.box()
         box.scale_y = bsy2
-        box.operator('object.cursor_plus_scale', emboss=False, text="Scale", icon='CON_LOCLIKE')
+        box.operator('cursorplus.scale_selected', emboss=False, text="Scale", icon='CON_LOCLIKE')
         box = row.box()
         box.scale_y = bsy2
-        box.operator('object.cursor_plus_copy', emboss=False, text="Copy Rotation") #, icon='ORIENTATION_PARENT')
+        box.operator('cursorplus.copy_rot_to_selected', emboss=False, text="Copy Rotation")
         
         col = layout.column()
         spl = col.split(factor=0.8)
@@ -353,7 +411,7 @@ class CURSORPLUS_PT_cursor_ops(bpy.types.Panel):
         else:
             box.operator('cursorplus.gizmo_presets', emboss=False, text="Axes Preset", icon='EVENT_A')
         box = spl.box()
-        box.operator('object.cursor_gizmo_visibility', emboss=False, text="", \
+        box.operator('cursorplus.gizmo_visibility', emboss=False, text="", \
                     icon='HIDE_OFF' if show_gizmo else 'HIDE_ON')
                
     
@@ -379,15 +437,19 @@ class CURSORPLUS_PT_snap_list(bpy.types.Panel):
             emboss=True if 'VERTEX' in snap_list else False).element='VERTEX'
         row.operator('cursorplus.toggle_list', text="", icon='SNAP_EDGE', \
             emboss=True if 'EDGE' in snap_list else False).element='EDGE'
-        row.operator('cursorplus.toggle_list', text="", icon='SNAP_FACE_CENTER', \
+        row.operator('cursorplus.toggle_list', text="", icon='SNAP_FACE', \
             emboss=True if 'FACE' in snap_list else False).element='FACE'
         row.operator('cursorplus.toggle_list', text="", icon = 'SNAP_MIDPOINT', \
             emboss=True if 'EDGE_MIDPOINT' in snap_list else False).element='EDGE_MIDPOINT'
         row.operator('cursorplus.toggle_list', text="", icon='SNAP_PERPENDICULAR', \
             emboss=True if 'EDGE_PERPENDICULAR' in snap_list else False).element='EDGE_PERPENDICULAR'
+        
         row = box.row(align=True)
+        row.scale_x = 5
         row.alignment = 'CENTER'
-        row.prop(prefs, 'plus_snap_align', text="Align Rotation to Target")
+        row.operator("cursorplus.align_rotation", icon='CHECKBOX_HLT'\
+            if prefs.plus_snap_align else 'CHECKBOX_DEHLT')
+        
  
 # Child-panel with Override controls. Separated to be accessable from pie-menu.        
 class CURSORPLUS_PT_override(bpy.types.Panel):
@@ -466,6 +528,7 @@ def updatePanel(self, context):
         print("\n[{}]\n{}\n\nError:\n{}".format(__package__, message, e))
         pass
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Customizable Pie-menu with PLUS Operators and callable Snap and Override panels.
 class CURSORPLUS_MT_cursor_plus_pie(bpy.types.Menu):
@@ -474,31 +537,54 @@ class CURSORPLUS_MT_cursor_plus_pie(bpy.types.Menu):
 
     def slice(self, context, item):
         prefs = context.preferences.addons[__package__].preferences
+        flags = context.scene.over
         show_gizmo = context.space_data.shading.show_gizmo_cursor_plus
         pie = self.layout.menu_pie()
         if item == "MOVECURSOR":
-            pie.operator('object.cursor_plus_snap', text="Snap 3D Cursor", icon='ORIENTATION_CURSOR') 
+            pie.operator('cursorplus.snap_cursor', text="Snap 3D Cursor", icon='ORIENTATION_CURSOR') 
     
         if item == "MOVE":
-            pie.operator('object.cursor_plus_move', text="Move", icon='MOD_LENGTH')
+            pie.operator('cursorplus.move_selected', text="Move", icon='MOD_LENGTH')
         
         if item == "ROTATE":
-            pie.operator('object.cursor_plus_rotate',  text="Rotate", icon='CON_ROTLIKE')
+            pie.operator('cursorplus.rotate_selected',  text="Rotate", icon='CON_ROTLIKE')
                        
         if item == "SCALE":
-            pie.operator('object.cursor_plus_scale', text="Scale", icon='CON_LOCLIKE')
+            pie.operator('cursorplus.scale_selected', text="Scale", icon='CON_LOCLIKE')
                         
         if item == "TWEAK":
             pie.operator('wm.call_panel', text="Tweak Snapping", icon='SNAP_ON').name="CURSORPLUS_PT_snap_list"
                   
         if item == "CLEAR":    
-            pie.operator('object.cursor_plus_clear', text="Clear Rotation")
+            pie.operator('cursorplus.clear_cursor', text="Reset 3D Cursor")
         
         if item == "COPY":
-            pie.operator('object.cursor_plus_copy', text="Copy Rotation", icon='ORIENTATION_PARENT')
+            pie.operator('cursorplus.copy_rot_to_selected', text="Copy Rotation", icon='ORIENTATION_PARENT')
             
         if item == "OVER":
             pie.operator('wm.call_panel', text="Override", icon='AUTO').name="CURSORPLUS_PT_override"
+            
+        if item == "OVER_ALT":
+            enable_ori, enable_piv, enable_stop  = False, False, False
+#            enable_piv = False
+#            enable_stop = False
+            if context.scene.transform_orientation_slots[0].type != 'CURSOR':
+                enable_ori = True
+                        
+            if context.tool_settings.transform_pivot_point != 'CURSOR':            
+                enable_piv = True
+                            
+            enable_both = True if enable_piv and enable_ori else False
+                      
+            if flags.ori_overridden and not enable_ori or flags.piv_overridden and not enable_piv:
+                enable_stop = True
+            
+                
+            if enable_both and not enable_stop:   
+                pie.operator('cursorplus.override', text="Override", icon='AUTO').action='ALL'
+            else:
+                pie.operator('cursorplus.override', text="STOP", icon='CANCEL').action='STOP'
+        
         
         if item == "PRESET":
             if prefs.preset_select:
@@ -511,7 +597,7 @@ class CURSORPLUS_MT_cursor_plus_pie(bpy.types.Menu):
             box = row.box()
             box.scale_y=1.2
             box.scale_x=1.1
-            box.operator('object.cursor_gizmo_visibility', emboss=False, text="", icon='HIDE_OFF' if show_gizmo else 'HIDE_ON')
+            box.operator('cursorplus.gizmo_visibility', emboss=False, text="", icon='HIDE_OFF' if show_gizmo else 'HIDE_ON')
             box = row.box()
             box.scale_y=1.2
             if prefs.preset_select:
@@ -530,10 +616,10 @@ class CURSORPLUS_MT_cursor_plus_pie(bpy.types.Menu):
             box = row.box()
             box.scale_y=1.2
             box.scale_x=1.1
-            box.operator('object.cursor_gizmo_visibility', emboss=False, text="", icon='HIDE_OFF' if show_gizmo else 'HIDE_ON')
+            box.operator('cursorplus.gizmo_visibility', emboss=False, text="", icon='HIDE_OFF' if show_gizmo else 'HIDE_ON')
             
         if item == "VISION":
-            pie.operator('object.cursor_gizmo_visibility', text="", icon='HIDE_OFF' if show_gizmo else 'HIDE_ON')    
+            pie.operator('cursorplus.gizmo_visibility', text="", icon='HIDE_OFF' if show_gizmo else 'HIDE_ON')    
                     
         if item == "EMPTY":
             pie.separator()        
@@ -566,17 +652,17 @@ class CURSORPLUS_MT_cursor_plus_pie(bpy.types.Menu):
         # Bot-Right
         self.slice(context, prefs.pie_bottom_right)        
         
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# Register/unregister section
 classes = (
     OverFlags,
     CURSORPLUS_OT_toggle_list,
-    CURSORPLUS_OT_clear_cursor_rot,
+    CURSORPLUS_OT_clear_cursor,
     CURSORPLUS_OT_copy_rot_to_selected,
-    CURSORPLUS_OT_move_with_cursor,
-    CURSORPLUS_OT_pivot_with_cursor,
-    CURSORPLUS_OT_scale_from_cursor,
-    CURSORPLUS_OT_move_cursor,
+    CURSORPLUS_OT_move_selected,
+    CURSORPLUS_OT_rotate_selected,
+    CURSORPLUS_OT_scale_selected,
+    CURSORPLUS_OT_snap_cursor,
     CURSORPLUS_OT_override,
     CURSORPLUS_PT_cursor_ops,
     CURSORPLUS_PT_snap_list,
@@ -590,8 +676,7 @@ def register():
     bpy.types.Scene.over = bpy.props.PointerProperty(type=OverFlags)
     
     updatePanel(None, bpy.context)
-
-    
+        
 def unregister():
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
