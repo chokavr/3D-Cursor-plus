@@ -1,8 +1,8 @@
-ops1 = "     PLUS Operators are intended to be accessed from a Pie menu. However, if you want to use shortcuts, \
-fell free to edit the placeholders made for them in 'PLUS Ops' and 'Snap Options' tabs down below. Worth \
-mentioning that Blender considers editing a shortcut as a change in 'Preferences'. Although 'Auto-Save \
-Preferences' is enabled by default, if you have turned it off, make sure to manually press 'Save Preferences'."
-
+ops1 = "     PLUS Operators are intended to be accessed from a Pie menu. However, if you want to use \
+shortcuts, feel free to edit the placeholders created for them in the 'PLUS Ops' and 'Snap Options' \
+tabs below. It's worth mentioning that Blender considers editing a shortcut as a change in 'Preferences'. \
+Although 'Auto-Save Preferences' is enabled by default, if you have turned it off, make sure to manually \
+press 'Save Preferences'."
 
 header0 = " Recommended tweaks:"
 
