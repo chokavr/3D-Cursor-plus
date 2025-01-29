@@ -1,40 +1,45 @@
 # Axes / Gizmo
-Customize two presets for different looks or behaviors of your 3D cursor's gizmo. Toggle between them using a shortcut, a button on a panel, or the Quick Favorites menu. Change visibility, colors, and other parameters.
+If you ever wanted to see the cursor's axes more clearly or have a gizmo for easier manipulation, here they are. You'll have two separate presets; use any or both, and toggle between them with a shortcut, a button on a panel, or a pie menu. Adjust them to fit your needs: change colors and sizes, choose the desired behavior for each preset, define visibility in separate areas, link with the 3D cursor, or use it instead of the cursor.
 
-#  Undo
-Allows you to undo/redo your 3D cursor's transformation.
-For the sake of simplicity, this function only considers changes in these three parameters:
-* 3D Cursor's location
-* 3D Cursor's Euler Rotation
-* 3D Cursor's Rotation Mode
-
-Changes in its Quaternion and Axis Rotations are ignored due to their redundancy, cursor-wise.
-Change detection has a tiny (~0.3sec) delay to filter out unnecessary transformations. So, if you attempt a 'rapid' cursor placement (more than 3 per sec), probably only the last one will be detected.
+# Undo
+If enabled, makes undo and redo work for your 3D cursor too.
+For the sake of simplicity, this function only considers changes in these three parameters: Cursor's Location, Euler Rotation and Rotation Mode.
+Changes in its Quaternion and Axis Rotations are ignored due to their redundancy, cursor-wise. Change detection has a tiny (~0.3 sec) delay to filter out unnecessary transformations. So, if you attempt a 'rapid' cursor placement (more than 3 per second), probably only the last one will be detected.
 This limitation does not apply to Undo and Redo operations themselves.
 
-#  Cursor related operators
-PLUS Operators are intended to be accessed from a Pie menu and do not have their own 
-dedicated shortcuts. However, if you want to have them or to add an operator to 'Quick Favourites', you can easily do so by right-clicking the desired button on the 3D Cursor Plus panel at the sidebar. Blender considers adding a shortcut as a change in 'Preferences'. Although 'Auto-Save Preferences' is enabled by default, if you've turned it off, make sure to press 'Save Preferences' manually.
+# Cursor Related Operators
+PLUS Operators are intended to streamline your workflow by providing easy access to default Blender operators that have been slightly tweaked to work with reference to the 3D Cursor. They work both in 'Object' and 'Edit' modes, 
+and some of the operators have modifiers that can alter their default behavior if 'SHIFT' or 'ALT' is held prior to calling them.
 
-## Snap to
-Move your 3D cursor with the 'Snap' option enabled and a separate 'Snap List'.
+## Snap To (with Op Modifiers)
+Move your 3D cursor with the 'Snap' option enabled and a separate 'Snap List', independent from your global snap options.
 
-**Tweak Snapping:** Choose elements to snap to and enable or disable aligning the cursor's rotation with the snapping target.
+* Tweak Snapping: You can choose elements to snap via panel, pie menu, or shortcuts, and enable or disable 'Aligning Rotation to Target'.
+* SHIFT: temporarily invert the current rotation mode.
+* ALT: snap with the cursor's rotation reset.
 
-## Move 
+## Move
 Move the selection along the 3D cursor's axis. The default is the Z axis.
 
-## Rotate 
+## Rotate
 Pivot the selection around the 3D cursor.
 
-## Scale 
+## Scale
 Scale the selection using the 3D cursor as a transform point.
 
-## Copy Rotation 
+## Copy Rotation
 Copy the rotation of the 3D cursor to the selected object(s).
 
-## Clear Rotation 
-Clear the 3D cursor's rotation
+## Reset 3D Cursor (with Op Modifiers)
+Clear the 3D cursor's rotation, location, or both, and even 'Frame All' after that. Clearing both is the default action.
 
-## Override
-Override the current Transform Orientation and/or Pivot Point to 'Cursor'
+* SHIFT: Reset only rotation.
+* ALT: Reset only location.
+* SHIFT+ALT: Call the built-in 'Center Cursor and Frame All' function (default Blender shortcut - Shift+C).
+
+## Override (with Op Modifiers)
+Override the current Transform Orientation and/or Pivot Point to 'Cursor'.
+It is possible to assign to the pie menu a callable 'Override' panel with 3 separate buttons, or to use the 'Override' as a single button with two available modifiers:
+* SHIFT: Override Transform Orientation.
+* ALT: Override Pivot Point.
+* By default, it will do both.
