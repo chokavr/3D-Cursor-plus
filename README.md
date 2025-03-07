@@ -1,7 +1,6 @@
 # Axes / Gizmo
 If you ever wanted to see the cursor's axes more clearly or have a gizmo for easier manipulation, here they are. You'll have two separate presets; use any or both, and toggle between them with a shortcut, a button on a panel, or a pie menu. Adjust them to fit your needs: change colors and sizes, choose the desired behavior for each preset, define visibility in separate areas, link with the 3D cursor, or use it instead of the cursor.
-
-![AxesGizmo](https://github.com/user-attachments/assets/2bc9c224-a024-4406-b36c-13cd0e38dee9)
+![GizmoAxes](https://github.com/user-attachments/assets/506e0e31-5804-476d-b5c7-0e0f96c02883)
 
 # Undo
 If enabled, makes undo and redo work for your 3D cursor too.
