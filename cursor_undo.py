@@ -60,7 +60,10 @@ def on_cursor_transform(scene):
     global last_loc, last_rot, last_mode, temp_loc, temp_rot, cur_cur_loc, \
             st_loc, st_rot, st_rot_q, st_rot_a, st_rot_m, stored_name, \
             cursor_changed, cursor_still, cursor_returned, orig_set_from_edit
-
+    prefs = bpy.context.preferences.addons[__package__].preferences 
+    if not prefs.plus_undo:
+        terminateUndo()
+        return
     current_mode = 'OBJECT'
     a_obj = bpy.context.active_object
     if a_obj is not None:
@@ -258,8 +261,10 @@ class CURSORPLUS_OT_move_ghost_to_cursor(bpy.types.Operator):
 
 # Register with timers and handlers. Helps to wait for proper context to appepar
 def initUndo():
-    summon_ghost()
-    bpy.app.handlers.depsgraph_update_post.append(on_cursor_transform)
+    prefs = bpy.context.preferences.addons[__package__].preferences    
+    if prefs.plus_undo:
+        summon_ghost()
+        bpy.app.handlers.depsgraph_update_post.append(on_cursor_transform)
     return None
 
 # Create an empty without linking it to any scene. Protect it with 'fake user'
