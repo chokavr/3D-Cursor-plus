@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "cursor_plus"
-version = "1.0.3"
+version = "1.0.4"
 name = "3D Cursor Plus"
 tagline = "Axes, undo and few other tools for your 3D Cursor"
 maintainer = "Roman Nurov | chokavr <blendertemple@gmail.com>"
